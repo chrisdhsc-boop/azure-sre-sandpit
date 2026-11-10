@@ -1,0 +1,44 @@
+name: oidc-smoke
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/oidc-smoke.yml"]
+  workflow_dispatch:
+permissions:
+  id-token: write     # lets the job request a GitHub OIDC token
+  contents: read
+jobs:
+  plan-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Who am I
+        run: |
+          echo "### Plan identity" >> "$GITHUB_STEP_SUMMARY"
+          az account show --query "{subscription:name, identity:user.name}" -o tsv >> "$GITHUB_STEP_SUMMARY"
+      - name: Prove it cannot write
+        run: |
+          if az group create -n rg-should-fail -l uksouth >/dev/null 2>&1; then
+            az group delete -n rg-should-fail --yes --no-wait
+            echo "Plan identity could write - fix its roles"; exit 1
+          fi
+          echo "Write correctly denied for the plan identity" >> "$GITHUB_STEP_SUMMARY"
+  apply-identity:
+    needs: plan-identity
+    runs-on: ubuntu-latest
+    environment: sandpit   # waits for your approval, then uses the env-level client ID
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Can see its resource group
+        run: |
+          echo "### Apply identity" >> "$GITHUB_STEP_SUMMARY"
+          az group show -n rg-sandpit --query "{name:name, location:location}" -o tsv >> "$GITHUB_STEP_SUMMARY"
+          
