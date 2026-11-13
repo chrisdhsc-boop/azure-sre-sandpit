@@ -9,7 +9,7 @@ resource "azurerm_storage_account" "this" {
   account_replication_type        = "LRS"
   min_tls_version                 = var.min_tls_version
   allow_nested_items_to_be_public = var.allow_public_blobs
-  shared_access_key_enabled       = false
+  shared_access_key_enabled       = var.shared_access_key_enabled
   https_traffic_only_enabled      = true
   tags                            = var.tags
 

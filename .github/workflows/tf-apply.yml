@@ -1,0 +1,46 @@
+name: tf-apply
+on:
+  push:
+    branches: [main]
+    paths: ["envs/**", "modules/**"]
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+concurrency:
+  group: tf-sandpit
+  cancel-in-progress: false   # queue; never cancel a running apply
+env:
+  ARM_USE_OIDC: "true"
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  TF_IN_AUTOMATION: "true"
+defaults:
+  run:
+    working-directory: envs/sandpit
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}   # repo level: plan identity
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_wrapper: false }
+      - run: terraform init -input=false
+      - run: |
+          terraform plan -input=false -no-color > plan.txt
+          { echo '### Plan to approve'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: sandpit                           # waits for your approval
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}   # environment level: apply identity
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_wrapper: false }
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -out=tfplan
+      - run: terraform apply -input=false tfplan
