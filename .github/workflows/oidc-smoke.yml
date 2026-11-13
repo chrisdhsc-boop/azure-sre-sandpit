@@ -18,7 +18,7 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       - name: Who am I
         run: |
-          echo "### Plan identity" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Plan identity" >> "$GITHUB_STEP_SUMMARY"
           az account show --query "{subscription:name, identity:user.name}" -o tsv >> "$GITHUB_STEP_SUMMARY"
       - name: Prove it cannot write
         run: |
