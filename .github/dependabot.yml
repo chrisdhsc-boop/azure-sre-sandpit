@@ -3,3 +3,6 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    package-ecosystem: terraform
+    directories: ["/envs/sandpit", "/modules/*"]
+    schedule: { interval: weekly }
