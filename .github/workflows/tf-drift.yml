@@ -1,0 +1,39 @@
+name: tf-drift
+on:
+  schedule: [{ cron: "0 6 * * *" }]
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+concurrency:
+  group: tf-sandpit
+  cancel-in-progress: false
+env:
+  ARM_USE_OIDC: "true"
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/sandpit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_wrapper: false }
+      - run: terraform init -input=false
+      - name: Plan, open an issue on drift
+        run: |
+          set +e
+          terraform plan -input=false -no-color -detailed-exitcode > plan.txt
+          code=$?
+          set -e
+          if [ "$code" -eq 2 ]; then
+            { echo "Plan found changes made outside Terraform."; echo; echo '```'; tail -n 60 plan.txt; echo '```'; } > body.md
+            gh issue create --title "Drift detected $(date +%F)" --label drift --body-file body.md
+          fi
+          [ "$code" -ne 1 ]   # 1 = error, fail the job

@@ -19,3 +19,7 @@ variable "allow_public_blobs" {
   type    = bool
   default = false
 }
+variable "shared_access_key_enabled" {
+  type    = bool
+  default = false
+}
