@@ -24,7 +24,7 @@ jobs:
     env:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}   # repo level: plan identity
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
       - run: terraform init -input=false
@@ -38,7 +38,7 @@ jobs:
     env:
       ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}   # environment level: apply identity
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: hashicorp/setup-terraform@v3
         with: { terraform_wrapper: false }
       - run: terraform init -input=false
